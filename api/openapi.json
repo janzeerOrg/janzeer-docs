@@ -1,0 +1,4462 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "Janzeer Node API",
+    "description" : "REST API of a Janzeer node (base path `/api/v1/`). Every response body is the envelope `{timestamp, version, payload}` (`version` = API version 1.1.0); errors carry `payload: {status, message, type?}`. Transactions are signed client-side and POSTed; the node never holds keys. JSON-RPC 2.0 is also served at `POST /rpc` and `ws://…/rpc/ws` (not part of this document — see the developer guide §2.14). Official SDKs: @janzeer/sdk (npm), janzeer_sdk (pub.dev), org.janzeer:janzeer-sdk (Maven).",
+    "contact" : {
+      "name" : "Janzeer",
+      "url" : "https://janzeer.org"
+    },
+    "license" : {
+      "name" : "Proprietary",
+      "url" : "https://janzeer.org"
+    },
+    "version" : "0.0.2"
+  },
+  "servers" : [ {
+    "url" : "http://localhost:7019",
+    "description" : "Local node"
+  } ],
+  "tags" : [ {
+    "name" : "Token Transactions",
+    "description" : "Submit and query native-token transactions (create/mint/burn/setcap/transfer)"
+  }, {
+    "name" : "Validator Transactions",
+    "description" : "Endpoints for managing blockchain validator transactions"
+  }, {
+    "name" : "Genesis Blocks",
+    "description" : "Endpoints for managing blockchain genesis blocks"
+  }, {
+    "name" : "Main Blocks",
+    "description" : "Endpoints for managing blockchain main blocks"
+  }, {
+    "name" : "Transfer Transactions",
+    "description" : "Endpoints for managing blockchain transfer transactions"
+  }, {
+    "name" : "Tokens",
+    "description" : "Native token definitions, supply and holder balances"
+  }, {
+    "name" : "Exit-Validator Transactions",
+    "description" : "Graceful validator exit transactions"
+  }, {
+    "name" : "Wallet Management",
+    "description" : "Public, read-only endpoints for blockchain wallet addresses"
+  }, {
+    "name" : "Node Information",
+    "description" : "Endpoints for retrieving node and hardware information"
+  }, {
+    "name" : "Reward Transactions",
+    "description" : "Endpoints for managing blockchain reward transactions"
+  }, {
+    "name" : "Explorer Information",
+    "description" : "Endpoints for retrieving explorer information"
+  }, {
+    "name" : "Validators Management",
+    "description" : "Endpoints for managing blockchain validators accounts and addresses"
+  } ],
+  "paths" : {
+    "/api/v1/wallets/validateAddress" : {
+      "post" : {
+        "tags" : [ "Wallet Management" ],
+        "summary" : "Validate a wallet address",
+        "description" : "Validate the format and checksum of a provided wallet address",
+        "operationId" : "validateAddress",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ValidateAddressRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "description" : "Invalid address data",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Address validation result",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ValidateAddressRequest"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/validators" : {
+      "get" : {
+        "tags" : [ "Validator Transactions" ],
+        "summary" : "Retrieve validator transactions",
+        "description" : "Get a paginated list of validator transactions with optional address, nodeKey, and confirmation status filters",
+        "operationId" : "find",
+        "parameters" : [ {
+          "name" : "address",
+          "in" : "query",
+          "description" : "Filter by sender address",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "nodeKey",
+          "in" : "query",
+          "description" : "Filter by validator node key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "unconfirmed",
+          "in" : "query",
+          "description" : "Include unconfirmed transactions",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          },
+          "example" : false
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "description" : "Pagination and sorting parameters",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "List of validator transactions",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Validator Transactions" ],
+        "summary" : "Create a new validator transaction",
+        "description" : "Create a new validator transaction with the provided details",
+        "operationId" : "add",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PromoterTxRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "description" : "Invalid transaction data",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201" : {
+            "description" : "Validator transaction created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/PromoterTxResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/transfers" : {
+      "get" : {
+        "tags" : [ "Transfer Transactions" ],
+        "summary" : "Retrieve transfer transactions",
+        "description" : "Get a paginated list of transfer transactions with optional address and confirmation status filters",
+        "operationId" : "find_1",
+        "parameters" : [ {
+          "name" : "address",
+          "in" : "query",
+          "description" : "Filter by sender or recipient address",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "unconfirmed",
+          "in" : "query",
+          "description" : "Include unconfirmed transactions",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          },
+          "example" : false
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "description" : "Pagination and sorting parameters",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "List of transfer transactions",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Transfer Transactions" ],
+        "summary" : "Create a new transfer transaction",
+        "description" : "Create a new transfer transaction with the provided details",
+        "operationId" : "add_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TransferTxRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "description" : "Invalid transaction data",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201" : {
+            "description" : "Transfer transaction created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/TransferTxResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/tokens" : {
+      "get" : {
+        "tags" : [ "Token Transactions" ],
+        "summary" : "List token transactions",
+        "description" : "Paginated; filter by tokenId or confirmation status",
+        "operationId" : "find_2",
+        "parameters" : [ {
+          "name" : "tokenId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "unconfirmed",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponseTokenTxResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Token Transactions" ],
+        "summary" : "Submit a signed token transaction",
+        "operationId" : "add_2",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TokenTxRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/TokenTxResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/exit-validators" : {
+      "get" : {
+        "tags" : [ "Exit-Validator Transactions" ],
+        "summary" : "Retrieve exit-validator transactions",
+        "operationId" : "find_3",
+        "parameters" : [ {
+          "name" : "address",
+          "in" : "query",
+          "description" : "Filter by sender address",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "unconfirmed",
+          "in" : "query",
+          "description" : "Include unconfirmed transactions",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          },
+          "example" : false
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "description" : "Pagination and sorting parameters",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponseExitPromoterTxResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Exit-Validator Transactions" ],
+        "summary" : "Create a new exit-validator transaction",
+        "operationId" : "add_3",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExitPromoterTxRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExitPromoterTxResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wallets/{address}" : {
+      "get" : {
+        "tags" : [ "Wallet Management" ],
+        "summary" : "Retrieve wallet balance",
+        "description" : "Get the balance for a specific wallet address",
+        "operationId" : "balance",
+        "parameters" : [ {
+          "name" : "address",
+          "in" : "path",
+          "description" : "Wallet address",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "0x123..."
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Invalid address format",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Address not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Wallet balance",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "type" : "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wallets/{address}/nonce" : {
+      "get" : {
+        "tags" : [ "Wallet Management" ],
+        "summary" : "Get the next transaction nonce for an address",
+        "description" : "The nonce a wallet must sign its NEXT transaction with: the committed account nonce plus the sender's transactions still pending in the mempool (pipelined). Matches exactly what transaction submission validates against, so consecutive sends can be queued without waiting for a block.",
+        "operationId" : "nonce",
+        "parameters" : [ {
+          "name" : "address",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/validators" : {
+      "get" : {
+        "tags" : [ "Validators Management" ],
+        "summary" : "Retrieve paginated validator accounts",
+        "description" : "Get a paginated list of validators",
+        "operationId" : "find_4",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "description" : "Pagination and sorting parameters",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "List of validators accounts",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/validators/view" : {
+      "get" : {
+        "tags" : [ "Validators Management" ],
+        "summary" : "Retrieve paginated validators details",
+        "description" : "Get a paginated list of validators details",
+        "operationId" : "findView",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "List of active validators details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/validators/active" : {
+      "get" : {
+        "tags" : [ "Validators Management" ],
+        "summary" : "Retrieve paginated active validator accounts",
+        "description" : "Get a paginated list of validators",
+        "operationId" : "active",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "description" : "Pagination and sorting parameters",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "List of active validators accounts",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/validators/{hash}" : {
+      "get" : {
+        "tags" : [ "Validator Transactions" ],
+        "summary" : "Retrieve validator transaction by hash",
+        "description" : "Get details of a validator transaction by its hash",
+        "operationId" : "byHash",
+        "parameters" : [ {
+          "name" : "hash",
+          "in" : "path",
+          "description" : "Transaction hash",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "abc123..."
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Transaction not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Validator transaction details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/PromoterTxResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/transfers/{hash}" : {
+      "get" : {
+        "tags" : [ "Transfer Transactions" ],
+        "summary" : "Retrieve transfer transaction by hash",
+        "description" : "Get details of a transfer transaction by its hash",
+        "operationId" : "byHash_1",
+        "parameters" : [ {
+          "name" : "hash",
+          "in" : "path",
+          "description" : "Transaction hash",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "0X123..."
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Transaction not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Transfer transaction details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/TransferTxResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/tokens/{hash}" : {
+      "get" : {
+        "tags" : [ "Token Transactions" ],
+        "summary" : "Get a token transaction by hash",
+        "operationId" : "byHash_2",
+        "parameters" : [ {
+          "name" : "hash",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/TokenTxResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/rewards" : {
+      "get" : {
+        "tags" : [ "Reward Transactions" ],
+        "summary" : "Retrieve reward transactions",
+        "description" : "Get a paginated list of reward transactions with optional address filter",
+        "operationId" : "find_5",
+        "parameters" : [ {
+          "name" : "address",
+          "in" : "query",
+          "description" : "Filter by recipient address",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "List of reward transactions",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/rewards/{hash}" : {
+      "get" : {
+        "tags" : [ "Reward Transactions" ],
+        "summary" : "Retrieve reward transaction by hash",
+        "description" : "Get details of a reward transaction by its hash",
+        "operationId" : "byHash_3",
+        "parameters" : [ {
+          "name" : "hash",
+          "in" : "path",
+          "description" : "Transaction hash",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "0X123..."
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Transaction not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Reward transaction details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/RewardTxResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/exit-validators/{hash}" : {
+      "get" : {
+        "tags" : [ "Exit-Validator Transactions" ],
+        "summary" : "Retrieve an exit-validator transaction by hash",
+        "operationId" : "byHash_4",
+        "parameters" : [ {
+          "name" : "hash",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExitPromoterTxResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tokens" : {
+      "get" : {
+        "tags" : [ "Tokens" ],
+        "summary" : "List all tokens (definitions + supply)",
+        "operationId" : "tokens",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponseTokenResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tokens/{tokenId}" : {
+      "get" : {
+        "tags" : [ "Tokens" ],
+        "summary" : "Get one token definition + supply",
+        "operationId" : "token",
+        "parameters" : [ {
+          "name" : "tokenId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/TokenResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tokens/{tokenId}/holders" : {
+      "get" : {
+        "tags" : [ "Tokens" ],
+        "summary" : "List a token's holders and their balances",
+        "operationId" : "holders",
+        "parameters" : [ {
+          "name" : "tokenId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponseTokenBalanceResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tokens/balances/{address}" : {
+      "get" : {
+        "tags" : [ "Tokens" ],
+        "summary" : "List all token balances held by an address",
+        "operationId" : "balances",
+        "parameters" : [ {
+          "name" : "address",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "pageable",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponseTokenBalanceResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/info" : {
+      "get" : {
+        "tags" : [ "Node Information" ],
+        "summary" : "Retrieve node information",
+        "description" : "Get details about the blockchain node, including its key, host, and port",
+        "operationId" : "info",
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Node information",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/NodeInfoResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/info/version" : {
+      "get" : {
+        "tags" : [ "Node Information" ],
+        "operationId" : "version",
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "type" : "object",
+                      "additionalProperties" : {
+                        "type" : "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/info/uptime" : {
+      "get" : {
+        "tags" : [ "Node Information" ],
+        "summary" : "Retrieve node uptime",
+        "description" : "Get the uptime of the node in milliseconds since the system started",
+        "operationId" : "uptime",
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Node uptime in milliseconds",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/explorer/info" : {
+      "get" : {
+        "tags" : [ "Explorer Information" ],
+        "summary" : "Retrieve explorer information",
+        "description" : "Get details about the blockchain explorer",
+        "operationId" : "getExplorerInfo",
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Explorer information",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExplorerResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/blocks/main" : {
+      "get" : {
+        "tags" : [ "Main Blocks" ],
+        "summary" : "Retrieve paginated main blocks",
+        "description" : "Get a paginated list of main blocks",
+        "operationId" : "find_6",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "description" : "Pagination and sorting parameters",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "List of main blocks",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/blocks/main/{hash}" : {
+      "get" : {
+        "tags" : [ "Main Blocks" ],
+        "summary" : "Retrieve block by hash",
+        "description" : "Get details of a main block by its hash",
+        "operationId" : "find_7",
+        "parameters" : [ {
+          "name" : "hash",
+          "in" : "path",
+          "description" : "Block hash",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "0X123..."
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Block not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Main block details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/MainBlockResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/blocks/main/{hash}/previous" : {
+      "get" : {
+        "tags" : [ "Main Blocks" ],
+        "summary" : "Retrieve previous block",
+        "description" : "Get the block immediately preceding the specified block by hash",
+        "operationId" : "previous",
+        "parameters" : [ {
+          "name" : "hash",
+          "in" : "path",
+          "description" : "Block hash",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "0X123..."
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Block or previous block not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Previous main block details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/MainBlockResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/blocks/main/{hash}/next" : {
+      "get" : {
+        "tags" : [ "Main Blocks" ],
+        "summary" : "Retrieve next block",
+        "description" : "Get the block immediately following the specified block by hash",
+        "operationId" : "next",
+        "parameters" : [ {
+          "name" : "hash",
+          "in" : "path",
+          "description" : "Block hash",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "0X123..."
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Block or next block not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Next main block details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/MainBlockResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/blocks/genesis" : {
+      "get" : {
+        "tags" : [ "Genesis Blocks" ],
+        "summary" : "Retrieve paginated main blocks",
+        "description" : "Get a paginated list of main blocks",
+        "operationId" : "find_8",
+        "parameters" : [ {
+          "name" : "pageable",
+          "in" : "query",
+          "description" : "Pagination and sorting parameters",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/AppPageRequest"
+          }
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "List of genesis blocks",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/AppPageResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/blocks/genesis/{hash}" : {
+      "get" : {
+        "tags" : [ "Genesis Blocks" ],
+        "summary" : "Retrieve block by hash",
+        "description" : "Get details of a genesis block by its hash",
+        "operationId" : "find_9",
+        "parameters" : [ {
+          "name" : "hash",
+          "in" : "path",
+          "description" : "Block hash",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "abc123..."
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Block not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Main block details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/GenesisBlockResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/blocks/genesis/{hash}/previous" : {
+      "get" : {
+        "tags" : [ "Genesis Blocks" ],
+        "summary" : "Retrieve previous block",
+        "description" : "Get the block immediately preceding the specified block by hash",
+        "operationId" : "previous_1",
+        "parameters" : [ {
+          "name" : "hash",
+          "in" : "path",
+          "description" : "Block hash",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "abc123..."
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Block or previous block not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Previous genesis block details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/GenesisBlockResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/blocks/genesis/{hash}/next" : {
+      "get" : {
+        "tags" : [ "Genesis Blocks" ],
+        "summary" : "Retrieve next block",
+        "description" : "Get the block immediately following the specified block by hash",
+        "operationId" : "next_1",
+        "parameters" : [ {
+          "name" : "hash",
+          "in" : "path",
+          "description" : "Block hash",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "abc123..."
+        } ],
+        "responses" : {
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "oneOf" : [ {
+                        "type" : "array",
+                        "items" : {
+                          "$ref" : "#/components/schemas/ValidationErrorResponse"
+                        }
+                      }, {
+                        "$ref" : "#/components/schemas/ExceptionResponse"
+                      } ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Block or next block not found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/ExceptionResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "Next genesis block details",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "title" : "RestResponse",
+                  "type" : "object",
+                  "properties" : {
+                    "timestamp" : {
+                      "type" : "integer",
+                      "format" : "int64"
+                    },
+                    "version" : {
+                      "type" : "string",
+                      "example" : "1.1.0"
+                    },
+                    "payload" : {
+                      "$ref" : "#/components/schemas/GenesisBlockResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "ExceptionResponse" : {
+        "required" : [ "status" ],
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ValidationErrorResponse" : {
+        "required" : [ "message" ],
+        "type" : "object",
+        "properties" : {
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ValidateAddressRequest" : {
+        "required" : [ "address" ],
+        "type" : "object",
+        "properties" : {
+          "address" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PromoterTxRequest" : {
+        "required" : [ "amount", "fee", "hash", "nonce", "senderAddress", "senderPublicKey", "senderSignature", "timestamp", "validatorKey" ],
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fee" : {
+            "type" : "number"
+          },
+          "nonce" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "senderAddress" : {
+            "type" : "string"
+          },
+          "amount" : {
+            "type" : "number"
+          },
+          "validatorKey" : {
+            "type" : "string"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "senderSignature" : {
+            "type" : "string"
+          },
+          "senderPublicKey" : {
+            "type" : "string"
+          }
+        },
+        "description" : "Validator transaction details"
+      },
+      "PromoterTxResponse" : {
+        "required" : [ "amount", "fee", "hash", "nodeKey", "senderAddress", "senderPublicKey", "senderSignature", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fee" : {
+            "type" : "number"
+          },
+          "senderAddress" : {
+            "type" : "string"
+          },
+          "senderSignature" : {
+            "type" : "string"
+          },
+          "senderPublicKey" : {
+            "type" : "string"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "nodeKey" : {
+            "type" : "string"
+          },
+          "amount" : {
+            "type" : "number"
+          },
+          "blockHash" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TransferTxRequest" : {
+        "required" : [ "amount", "fee", "hash", "nonce", "senderAddress", "senderPublicKey", "senderSignature", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fee" : {
+            "type" : "number"
+          },
+          "nonce" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "senderAddress" : {
+            "type" : "string"
+          },
+          "senderSignature" : {
+            "type" : "string"
+          },
+          "senderPublicKey" : {
+            "type" : "string"
+          },
+          "amount" : {
+            "type" : "number"
+          },
+          "recipientAddress" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "string"
+          }
+        },
+        "description" : "Transfer transaction details"
+      },
+      "ReceiptResultResponse" : {
+        "required" : [ "amount", "from", "to" ],
+        "type" : "object",
+        "properties" : {
+          "from" : {
+            "type" : "string"
+          },
+          "to" : {
+            "type" : "string"
+          },
+          "amount" : {
+            "type" : "number"
+          },
+          "data" : {
+            "type" : "string"
+          },
+          "error" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TransferTxResponse" : {
+        "required" : [ "amount", "fee", "hash", "senderAddress", "senderPublicKey", "senderSignature", "status", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fee" : {
+            "type" : "number"
+          },
+          "senderAddress" : {
+            "type" : "string"
+          },
+          "senderSignature" : {
+            "type" : "string"
+          },
+          "senderPublicKey" : {
+            "type" : "string"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "boolean"
+          },
+          "amount" : {
+            "type" : "number"
+          },
+          "recipientAddress" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "string"
+          },
+          "results" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReceiptResultResponse"
+            }
+          },
+          "blockHash" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TokenTxRequest" : {
+        "required" : [ "fee", "hash", "nonce", "op", "senderAddress", "senderPublicKey", "senderSignature", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fee" : {
+            "type" : "number"
+          },
+          "nonce" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "senderAddress" : {
+            "type" : "string"
+          },
+          "op" : {
+            "type" : "string",
+            "format" : "byte"
+          },
+          "tokenId" : {
+            "type" : "string"
+          },
+          "symbol" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "decimals" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cap" : {
+            "type" : "integer"
+          },
+          "amount" : {
+            "type" : "integer"
+          },
+          "recipient" : {
+            "type" : "string"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "senderSignature" : {
+            "type" : "string"
+          },
+          "senderPublicKey" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TokenTxResponse" : {
+        "required" : [ "decimals", "fee", "hash", "name", "op", "opName", "senderAddress", "senderPublicKey", "senderSignature", "symbol", "timestamp", "tokenId" ],
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fee" : {
+            "type" : "number"
+          },
+          "senderAddress" : {
+            "type" : "string"
+          },
+          "senderSignature" : {
+            "type" : "string"
+          },
+          "senderPublicKey" : {
+            "type" : "string"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "op" : {
+            "type" : "string",
+            "format" : "byte"
+          },
+          "opName" : {
+            "type" : "string"
+          },
+          "tokenId" : {
+            "type" : "string"
+          },
+          "symbol" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "decimals" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cap" : {
+            "type" : "integer"
+          },
+          "amount" : {
+            "type" : "integer"
+          },
+          "recipient" : {
+            "type" : "string"
+          },
+          "blockHash" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ExitPromoterTxRequest" : {
+        "required" : [ "fee", "hash", "nonce", "senderAddress", "senderPublicKey", "senderSignature", "timestamp", "validatorKey" ],
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fee" : {
+            "type" : "number"
+          },
+          "nonce" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "senderAddress" : {
+            "type" : "string"
+          },
+          "validatorKey" : {
+            "type" : "string"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "senderSignature" : {
+            "type" : "string"
+          },
+          "senderPublicKey" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ExitPromoterTxResponse" : {
+        "required" : [ "fee", "hash", "nodeKey", "senderAddress", "senderPublicKey", "senderSignature", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fee" : {
+            "type" : "number"
+          },
+          "senderAddress" : {
+            "type" : "string"
+          },
+          "senderSignature" : {
+            "type" : "string"
+          },
+          "senderPublicKey" : {
+            "type" : "string"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "nodeKey" : {
+            "type" : "string"
+          },
+          "blockHash" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AppPageRequest" : {
+        "required" : [ "limit", "offset", "page", "pageNumber", "pageSize", "size", "sort", "sortBy", "sortDirection" ],
+        "type" : "object",
+        "properties" : {
+          "offset" : {
+            "minimum" : 0,
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "page" : {
+            "minimum" : 0,
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sortBy" : {
+            "uniqueItems" : true,
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "sortDirection" : {
+            "type" : "string",
+            "enum" : [ "ASC", "DESC" ]
+          },
+          "sort" : {
+            "$ref" : "#/components/schemas/SortObject"
+          },
+          "limit" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "paged" : {
+            "type" : "boolean"
+          },
+          "unpaged" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "SortObject" : {
+        "type" : "object",
+        "properties" : {
+          "empty" : {
+            "type" : "boolean"
+          },
+          "sorted" : {
+            "type" : "boolean"
+          },
+          "unsorted" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "AppPageResponse" : {
+        "required" : [ "list", "page", "pageSize", "total", "totalPages" ],
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "list" : {
+            "type" : "array",
+            "items" : {
+              "type" : "object"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "AppPageResponseTokenTxResponse" : {
+        "required" : [ "list", "page", "pageSize", "total", "totalPages" ],
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "list" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TokenTxResponse"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "RewardTxResponse" : {
+        "required" : [ "fee", "hash", "recipientAddress", "reward", "senderAddress", "senderPublicKey", "senderSignature", "timestamp" ],
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fee" : {
+            "type" : "number"
+          },
+          "senderAddress" : {
+            "type" : "string"
+          },
+          "senderSignature" : {
+            "type" : "string"
+          },
+          "senderPublicKey" : {
+            "type" : "string"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "reward" : {
+            "type" : "number"
+          },
+          "recipientAddress" : {
+            "type" : "string"
+          },
+          "blockHash" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AppPageResponseExitPromoterTxResponse" : {
+        "required" : [ "list", "page", "pageSize", "total", "totalPages" ],
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "list" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ExitPromoterTxResponse"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "AppPageResponseTokenResponse" : {
+        "required" : [ "list", "page", "pageSize", "total", "totalPages" ],
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "list" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TokenResponse"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "TokenResponse" : {
+        "required" : [ "cap", "decimals", "issuer", "name", "symbol", "tokenId", "totalSupply" ],
+        "type" : "object",
+        "properties" : {
+          "tokenId" : {
+            "type" : "string"
+          },
+          "symbol" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "decimals" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cap" : {
+            "type" : "integer"
+          },
+          "totalSupply" : {
+            "type" : "integer"
+          },
+          "issuer" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AppPageResponseTokenBalanceResponse" : {
+        "required" : [ "list", "page", "pageSize", "total", "totalPages" ],
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "list" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TokenBalanceResponse"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "TokenBalanceResponse" : {
+        "required" : [ "balance", "holder", "tokenId" ],
+        "type" : "object",
+        "properties" : {
+          "tokenId" : {
+            "type" : "string"
+          },
+          "holder" : {
+            "type" : "string"
+          },
+          "balance" : {
+            "type" : "integer"
+          }
+        }
+      },
+      "NodeInfoResponse" : {
+        "required" : [ "host", "nodeKey", "port" ],
+        "type" : "object",
+        "properties" : {
+          "nodeKey" : {
+            "type" : "string"
+          },
+          "host" : {
+            "type" : "string"
+          },
+          "port" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ExplorerResponse" : {
+        "required" : [ "blockProductionTime", "blocksCount", "circulatingSupply", "currentEpochDate", "currentEpochNumber", "maxSupply", "nodesCount", "transactionsCount", "transactionsPerSecond", "validatorsCount" ],
+        "type" : "object",
+        "properties" : {
+          "nodesCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "blocksCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "transactionsCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "blockProductionTime" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "transactionsPerSecond" : {
+            "type" : "number"
+          },
+          "currentEpochNumber" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "currentEpochDate" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "validatorsCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "maxSupply" : {
+            "type" : "number"
+          },
+          "circulatingSupply" : {
+            "type" : "number"
+          }
+        }
+      },
+      "MainBlockResponse" : {
+        "required" : [ "epochIndex", "hash", "height", "merkleHash", "previousHash", "publicKey", "signature", "timestamp", "transactionsCount" ],
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "height" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "previousHash" : {
+            "type" : "string"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "signature" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : "string"
+          },
+          "merkleHash" : {
+            "type" : "string"
+          },
+          "transactionsCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "epochIndex" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "GenesisBlockResponse" : {
+        "required" : [ "epochIndex", "hash", "height", "previousHash", "publicKey", "signature", "timestamp", "validatorsCount" ],
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "height" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "previousHash" : {
+            "type" : "string"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "signature" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : "string"
+          },
+          "epochIndex" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "validatorsCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "RestResponse" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "version" : {
+            "type" : "string",
+            "example" : "1.1.0"
+          },
+          "payload" : {
+            "type" : "object"
+          }
+        },
+        "description" : "Envelope added to every REST body: `timestamp` (ms), `version` (API version), `payload` (the documented type, or `{status, message, type?}` on errors)."
+      }
+    }
+  }
+}

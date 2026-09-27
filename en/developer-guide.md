@@ -481,7 +481,7 @@ You do not have to re-implement the crypto scheme of §3: three official SDKs do
 
 | Language | Package | Install | Platforms |
 |---|---|---|---|
-| TypeScript / JavaScript | `@janzeer/sdk` | `npm install @janzeer/sdk` | Node 18+, browsers (pure JS, works on plain-http pages), Deno/Bun |
+| TypeScript / JavaScript | `@janzeer/sdk` | `npm install @janzeer/sdk` | Node 20+, browsers (pure JS, works on plain-http pages), Deno/Bun |
 | Dart / Flutter | `janzeer_sdk` | `dart pub add janzeer_sdk` | Dart VM, Flutter mobile/desktop/web |
 | Kotlin / JVM / Android | `org.janzeer:janzeer-sdk-client` (+ `janzeer-sdk-core`) | Gradle/Maven dependency | JVM 11+, Android API 26+, plain Java |
 

@@ -480,7 +480,7 @@ op(1) ‖ LP(tokenId) ‖ LP(symbol) ‖ LP(name) ‖ int32(decimals) ‖ LP(cap
 
 | اللغة | الحزمة | التثبيت | المنصّات |
 |---|---|---|---|
-| TypeScript / JavaScript | `@janzeer/sdk` | `npm install @janzeer/sdk` | Node 18+، المتصفّحات (JavaScript خالص، يعمل على صفحات http عادية)، Deno/Bun |
+| TypeScript / JavaScript | `@janzeer/sdk` | `npm install @janzeer/sdk` | Node 20+، المتصفّحات (JavaScript خالص، يعمل على صفحات http عادية)، Deno/Bun |
 | Dart / Flutter | `janzeer_sdk` | `dart pub add janzeer_sdk` | Dart VM، وFlutter للجوّال وسطح المكتب والويب |
 | Kotlin / JVM / Android | `org.janzeer:janzeer-sdk-client` (+ `janzeer-sdk-core`) | اعتمادية Gradle/Maven | JVM 11+، Android API 26+، وJava العادية |
 

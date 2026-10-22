@@ -7,7 +7,7 @@ Janzeer is a fixed-supply, **permissionless stake-free** BFT Layer-1 with a non-
 ### What the protocol aims to guarantee
 - **Safety (no two conflicting finalized blocks):** at most one block is finalized at each height, as long as fewer than one-third of the active set is Byzantine.
 - **Single-block finality:** a block that reaches a COMMIT quorum is final immediately, with no confirmation-depth waiting period and no probabilistic reorg.
-- **Replay protection:** every transaction is bound to a per-account nonce (part of both the signed preimage and the account state hash) and to the **network-id** in the signed preimage, so a transaction cannot be replayed on the same account or across a different Janzeer network (mainnet/testnet/devnet).
+- **Replay protection:** every transaction is bound to a per-account nonce (part of both the signed preimage and the account state hash) and to the **network-id** in the signed preimage, so a transaction cannot be replayed on the same account or across a different Janzeer network (the mainnet, or a private test network).
 - **Overspend impossibility:** an account balance can never go negative, on the live path or during sync.
 - **Fixed supply conservation:** total supply is `MAX_SUPPLY = 100,000,000` (scale 8), pre-allocated at genesis and never minted; fees are split (recycled or paid to the producer), never burned and never created.
 - **Authenticated networking:** only peers that complete a mutual ECDSA handshake are admitted.
@@ -82,7 +82,7 @@ Slots are deterministic round-robin over the epoch's frozen active list: active 
 |---|---|---|
 | Double-spend | Spend the same balance twice | Per-account nonce + mempool actual-balance check + single-block BFT finality: once a block is COMMIT-finalized it cannot be reorged without a 2f+1 corroborated rollback. |
 | Replay (same chain) | Rebroadcast a captured signed tx | Nonce is in the signed preimage and state hash; the consumed nonce makes the replay invalid. |
-| Cross-chain replay | Replay a tx on another Janzeer network | The `network-id` is bound into the signed preimage; a tx signed for one network (mainnet/testnet/devnet) is invalid on any other. |
+| Cross-chain replay | Replay a tx on another Janzeer network | The `network-id` is bound into the signed preimage; a tx signed for one network (the mainnet, or a private test network) is invalid on any other. |
 | Equivocation / double-vote | A validator votes twice in a slot/stage | `SlotVoteTracker` makes the second vote a provable `SlashingTx`; `equivocation-ban-threshold = 2` offenses → permanent ban; reporter bounty 5. |
 | Long-range / history rewrite / rollback | Rewrite finalized history | Single forward-only tip; discarding committed state needs the **same 2f+1 quorum** of distinct authenticated validators (`RollbackCorroborator`). A lone or sub-quorum node cannot rewrite history. |
 | Sybil peers | Flood the network with fake peers | Mutual authenticated handshake (node UID = public key); only authenticated peers admitted; accept cap `allowedConnections = 7`. Peer count confers no consensus weight — block production comes only from registered validators. |
@@ -98,8 +98,8 @@ Slots are deterministic round-robin over the epoch's frozen active list: active 
 
 ## 8. Honest limitations & operational caveats
 
-- **Dev/testnet committed secrets must be rotated.** The repository ships dev-default genesis anchor wallets and signer material for local and testnet bring-up. These are **not production secrets** — operators must generate and configure fresh keys (via `janzeer.genesis.anchors` / `janzeer.genesis.signer-secret`) before any mainnet deployment.
-- **Dev-fund faucet must be OFF in production.** The `janzeer.dev-fund` faucet (`0xaddr:amount`) is for dev/testnet end-to-end testing and is OFF by default. It must never be enabled on a production network.
+- **Dev/testnet committed secrets must be rotated.** The repository ships dev-default genesis anchor wallets and signer material for local and private test-network bring-up. These are **not production secrets** — operators must generate and configure fresh keys (via `janzeer.genesis.anchors` / `janzeer.genesis.signer-secret`) before any mainnet deployment.
+- **Dev-fund faucet must be OFF in production.** The `janzeer.dev-fund` faucet (`0xaddr:amount`) is for development end-to-end testing and is OFF by default. It must never be enabled on a production network.
 - **The registration deposit is non-refundable by design.** The `2000` `PromoterTx` deposit goes to the treasury bank and is never returned — not on graceful exit, not on ban. This is intentional (it is the primary Sybil guard); operators should treat it as a sunk cost, not a bond.
 - **The 12M ecosystem pool's custody must be transparent.** The genesis ecosystem/distribution pool (`12,000,000`) should be held under a transparent, accountable mechanism (faucet / airdrop / governed distribution), not a private founder wallet, so its movements are auditable.
 - **A single node cannot finalize.** Finality requires a live BFT quorum of the active set. A single node (or any group below `bftQuorum(N)`) can build and serve blocks but cannot finalize them; production also halts when not `SYNCHRONIZED` or clock-synced.

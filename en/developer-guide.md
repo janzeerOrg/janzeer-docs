@@ -28,18 +28,18 @@ Wait for `"syncStatus":"SYNCHRONIZED"` before you rely on balances or submit tra
 
 ### 1.2 Networks
 
-There are two networks, and a bundle belongs to exactly one of them:
+There is one public network, the mainnet. A bundle belongs to exactly one network id:
 
 | Network | `networkId` | Use |
 |---|---|---|
-| Testnet | `janzeer-testnet` | build and test here — coins have no value, a faucet hands them out |
-| Mainnet | `janzeer` | real value |
+| Mainnet | `janzeer` | the live chain — the only public network |
+| Private test network | `janzeer-testnet` | a network you run yourself (the local developer network of the SDK conformance kit, or your own nodes); coins on it have no value. There is no public testnet. |
 
 The `networkId` is part of every signed transaction preimage (§3) and of the P2P handshake, so a transaction signed for one network is invalid on the other. Read it from `GET /api/v1/info` instead of hard-coding it, as the official wallets do.
 
-### 1.3 Test coins (testnet faucet)
+### 1.3 Test coins
 
-On the testnet, `POST /api/v1/faucet` with `{"address": "0x…"}` (or the **Faucet** page of the testnet explorer) sends a small amount of test coins to an address, rate-limited per address and per IP. There is no faucet on the mainnet.
+There is no public faucet. To develop against a chain with free coins, run a private network: the SDK conformance kit's `e2e/node-up.sh` boots a local 4-node network whose node 1 runs a faucet (`POST /api/v1/faucet` with `{"address": "0x…"}`, rate-limited per address and per IP) and funds a test wallet. A node refuses the faucet on the mainnet id. On the mainnet, coins come from a transfer, from the jPong game's monthly payout, or from block rewards as a validator.
 
 ### 1.4 Genesis config & chain-spec pinning
 
@@ -51,7 +51,7 @@ The genesis state is **config-driven**. The relevant keys are:
 | `janzeer.genesis.signer-secret` | the ceremony key that signs only the two bootstrap blocks (not an anchor) |
 | `janzeer.genesis.founder` | optional founder custody address (carved out of the treasury) |
 | `janzeer.genesis.distribution` | optional ecosystem/distribution pool custody address |
-| `janzeer.dev-fund` | optional `0xaddr:amount` dev/testnet faucet, drawn from the treasury |
+| `janzeer.dev-fund` | optional `0xaddr:amount` development pre-fund for a private network, drawn from the treasury (refused on the mainnet) |
 | `consensus.network-id` | the network-id string (default `janzeer`), bound into the signed preimage and the P2P handshake |
 
 The consensus-critical parameter set (everything under `consensus.*`) is the canonical rule-set fixed at genesis. Each node computes a **chain-spec digest** (a double-SHA256 over those params) and exchanges it in the P2P handshake; a peer whose digest differs is rejected before the challenge. A node that edits any consensus parameter forks itself off the network rather than silently diverging — so integrators can rely on a consistent rule-set across authenticated peers.
@@ -180,7 +180,7 @@ Replace `main` with `genesis` for genesis blocks (epoch-boundary blocks that fre
 
 | Method | Path | Returns |
 |---|---|---|
-| GET | `/validators` (+ pagination, by registration order) | all validators, ordered by registration |
+| GET | `/validators` (+ pagination, by registration order) | all validators, ordered by registration; each row carries `status` (`ACTIVE` in this epoch's set · `PENDING` registered after this epoch began, seated at the next boundary · `STANDBY` registered earlier but not seated this epoch · `EXITED` · `BANNED`), `registeredAt`, `lastBlockHeight`/`lastBlockTime` (newest block it produced, null if none) and `joinsAtHeight` (PENDING/STANDBY: the next epoch genesis height) — node 0.1.3 |
 | GET | `/validators/active` (+ pagination) | the current active set |
 | GET | `/validators/view` (+ pagination) | validator view records |
 
@@ -213,9 +213,11 @@ Payload fields:
 |---|---|---|
 | GET | `/info` | `{ nodeKey, host, port, networkId, genesisHash, chainSpecDigest, version, apiVersion, protocolVersion, syncStatus, faucet }` — read `networkId` and sign every transaction with it |
 | GET | `/info/version` | node version |
+| GET | `/info/update` | the node's version against the latest published release (daily manifest check, notification only; node 0.1.3) |
+| GET | `/info/sync` | catch-up progress: `syncStatus`, `tipHeight`, `stagedBlocks` (downloaded and verified, not yet committed), `targetHeight`, `peers` — a fresh node stages a whole epoch before its first commit (node 0.1.2) |
 | GET | `/info/uptime` | node uptime |
 | GET | `/info/genesis` | the chain's public `genesis.json` (what a downloaded node boots from) |
-| GET / POST | `/faucet` | testnet only: status / `{address}` → a 10 JNZ drip (`429` + `Retry-After` inside the cooldown; `404` on mainnet) |
+| GET / POST | `/faucet` | private test networks only (a node started with a faucet key on a test network id): status / `{address}` → a 10 JNZ drip (`429` + `Retry-After` inside the cooldown). `404` on the mainnet — there is no public faucet. |
 
 ### 2.11 Actuator & API docs (unwrapped)
 
@@ -475,7 +477,7 @@ Use the endpoints in §2.12 (token transactions) and §2.13 (token state): `POST
 
 ## 5. Build on Janzeer — official SDKs & conformance
 
-You do not have to re-implement the crypto scheme of §3: three official SDKs do it, are proven byte-for-byte against the node, and wrap the REST and JSON-RPC surfaces of §2 with typed clients. All are Apache-2.0, non-custodial (keys never leave your process) and tested against node 0.1.0 / API 1.1.0.
+You do not have to re-implement the crypto scheme of §3: five official SDKs do it, are proven byte-for-byte against the node, and wrap the REST and JSON-RPC surfaces of §2 with typed clients. All are Apache-2.0, non-custodial (keys never leave your process) and tested against node 0.1.0 / API 1.1.0.
 
 ### 5.1 The SDKs
 
@@ -484,6 +486,8 @@ You do not have to re-implement the crypto scheme of §3: three official SDKs do
 | TypeScript / JavaScript | `@janzeer/sdk` | `npm install @janzeer/sdk` | Node 20+, browsers (pure JS, works on plain-http pages), Deno/Bun |
 | Dart / Flutter | `janzeer_sdk` | `dart pub add janzeer_sdk` | Dart VM, Flutter mobile/desktop/web |
 | Kotlin / JVM / Android | `org.janzeer:janzeer-sdk-client` (+ `janzeer-sdk-core`) | Gradle/Maven dependency | JVM 11+, Android API 26+, plain Java |
+| Python | `janzeer-sdk` (import `janzeer`) | `pip install "janzeer-sdk[ws]"` | Python 3.10–3.13 on Linux, macOS, Windows; blocking and `asyncio` clients |
+| Go | `github.com/janzeerorg/janzeer-sdk-go` | `go get github.com/janzeerorg/janzeer-sdk-go` | Go 1.26+, no cgo (cross-compiles everywhere) |
 
 Each SDK has the same shape: `Mnemonic` / `Account` (keys, addresses, signing), `TxBuilder` (transfer, validator registration/exit, all five JZT-1 token ops) → `UnsignedTx` → `SignedTx`, a typed REST client (`JanzeerClient`), JSON-RPC over HTTP (`JanzeerRpc`) and WebSocket with `newBlocks` / `addressActivity` subscriptions (`JanzeerRpcWs`), `waitForFinality` / `sendAndWait` helpers, a typed error hierarchy (`NonceMismatch`, `TxRejected` with the node's `type`, `RateLimited`, …) and an optional encrypted vault for the phrase at rest. Amounts are decimal strings and responses are parsed losslessly — never through a floating-point number.
 
@@ -510,6 +514,21 @@ final fin = await waitForFinality(rpc, tx.hash);
 val tx = me.signTx(TxBuilder.transfer(from = me.address, to = to, amount = "1.25", nonce = client.nonce(me.address)))
 client.submit(tx)
 val fin = Helpers.waitForFinality(rpc, tx.hash)
+```
+
+```python
+# Python (asyncio twins: AsyncJanzeerClient, AsyncJanzeerRpc, JanzeerRpcWs, await_finality)
+tx = me.sign_tx(TxBuilder.transfer(sender=me.address, to=to, amount="1.25", nonce=client.nonce(me.address)))
+client.submit(tx)
+final = wait_for_finality(rpc, tx.hash)
+```
+
+```go
+// Go (every call takes a context; errors are typed values for errors.As)
+utx, _ := janzeer.NewTransfer(janzeer.Transfer{Common: janzeer.Common{From: me.Address(), Nonce: nonce}, To: to, Amount: "1.25"})
+tx, _ := me.SignTx(utx)
+_, err := c.Submit(ctx, tx)
+final, err := rpc.WaitForFinality(ctx, r, tx.Hash)
 ```
 
 Every SDK repository ships a README with this quickstart, guides (wallet & keys, sending each transaction type, reading chain data, JSON-RPC & subscriptions, errors & nonces, vault, migration), a generated API reference (TypeDoc / dartdoc / Dokka) and runnable examples. The Janzeer explorer wallet, the Telegram mini-app wallet and the Flutter wallet are built on them.

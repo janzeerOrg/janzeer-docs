@@ -123,8 +123,8 @@ The one and only economic link to the coin is the **fee**: every token operation
 
 ## 7. Honest caveats
 
-- **Genesis allocations are configurable defaults.** The three anchor validator wallets and any committed balances are **dev/testnet defaults**, overridable at genesis via `janzeer.genesis.anchors`. Production deployments set their own anchors; the headline supply parameters (cap, genesis split, reward schedule) are protocol constants and do not change.
-- **The 12,000,000 ecosystem pool needs transparent custody.** It must be held and disbursed through a transparent mechanism — a faucet, an airdrop, or a governed program — **not** a founder wallet. The dev-fund faucet (`janzeer.dev-fund`) is a dev/testnet convenience drawn from the treasury and must be **OFF in production**.
+- **Genesis allocations are configurable defaults.** The three anchor validator wallets and any committed balances are **development defaults**, overridable at genesis via `janzeer.genesis.anchors`. Production deployments set their own anchors; the headline supply parameters (cap, genesis split, reward schedule) are protocol constants and do not change.
+- **The 12,000,000 ecosystem pool needs transparent custody.** It must be held and disbursed through a transparent mechanism — a faucet, an airdrop, or a governed program — **not** a founder wallet. The dev-fund faucet (`janzeer.dev-fund`) is a development convenience drawn from the treasury and must be **OFF in production**.
 - **No token-sale or price claims.** This document describes only the on-chain economic mechanics. It makes no representation about price, market value, distribution sale, or any return. There is no ticker symbol in code.
 - **The treasury is key-less by design.** No party — including the team — can spend the `77,500,000` bank directly; only protocol reward/fee logic moves it.
 - **The registration deposit is non-refundable by design.** Retiring a validator (`ExitPromoterTx`) does not return the `2000` deposit.

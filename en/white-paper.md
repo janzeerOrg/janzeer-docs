@@ -1,6 +1,6 @@
 # Janzeer White Paper
 
-Janzeer is a fixed-supply, Byzantine-fault-tolerant, permissionless Layer-1 blockchain with a non-custodial design at its core: the node verifies signatures and never holds, generates, or stores user keys. Its native coin has a hard cap of 100,000,000 units that are never minted — every coin exists at genesis, and block rewards are paid out of a pre-funded on-chain treasury rather than created from nothing. There is no staking, delegation, or voting: block production is carried out by validators who register permissionlessly behind a non-refundable deposit, produce blocks in a fixed rotation, and finalize each block through a two-phase BFT vote. This paper explains what Janzeer is, the problem it addresses, its economic model, how transactions and fees work, and how consensus, validator admission, and security fit together — using the real parameters from the codebase and stating its current dev/testnet caveats honestly.
+Janzeer is a fixed-supply, Byzantine-fault-tolerant, permissionless Layer-1 blockchain with a non-custodial design at its core: the node verifies signatures and never holds, generates, or stores user keys. Its native coin has a hard cap of 100,000,000 units that are never minted — every coin exists at genesis, and block rewards are paid out of a pre-funded on-chain treasury rather than created from nothing. There is no staking, delegation, or voting: block production is carried out by validators who register permissionlessly behind a non-refundable deposit, produce blocks in a fixed rotation, and finalize each block through a two-phase BFT vote. This paper explains what Janzeer is, the problem it addresses, its economic model, how transactions and fees work, and how consensus, validator admission, and security fit together — using the real parameters from the codebase and stating its current development caveats honestly.
 
 ## 1. What Janzeer Is and the Problem It Addresses
 
@@ -177,8 +177,8 @@ Janzeer's security rests on several mutually reinforcing properties:
 
 In keeping with an accurate, no-hype presentation, the following limitations and defaults should be understood plainly:
 
-- **Dev/testnet anchor defaults.** The anchor validator secrets and genesis defaults committed in the repository are for development and testnet use. They must be rotated for any production deployment.
-- **Dev-fund faucet is a testing aid.** An optional dev/testnet faucet exists for end-to-end testing. It is off by default and must remain off in production.
+- **Dev/testnet anchor defaults.** The anchor validator secrets and genesis defaults committed in the repository are for development and private test networks. They must be rotated for any production deployment.
+- **Dev-fund faucet is a testing aid.** An optional development pre-fund exists for end-to-end testing on private networks. It is off by default and must remain off in production.
 - **Ecosystem pool custody must be transparent.** The 12,000,000-coin ecosystem/distribution pool should be held under transparent custody (faucet, airdrop, or governed process), not in a founder wallet.
 - **Finality requires a live quorum.** A single node cannot finalize blocks. Finality depends on a live quorum of the active validator set, so a real network with a sufficient set of active, honest validators is required for the BFT guarantees to hold.
 - **The registration deposit is non-refundable by design.** Exiting a validator, gracefully or otherwise, does not return the deposit.

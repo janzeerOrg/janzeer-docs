@@ -438,16 +438,16 @@ curl http://localhost:7019/api/v1/explorer/info
 | `nodeKey` | `String` | المفتاح العام لهذه العقدة (هويتها في P2P / مُعرّفها UID؛ **مفتاح المُصادِق** الذي تُسجِّله) |
 | `host` | `String` | المضيف الخارجي المُعلَن |
 | `port` | `Int` | منفذ P2P الخارجي المُعلَن |
-| `networkId` | `String` | `consensus.network-id` — `janzeer` (الشبكة الرئيسية) أو `janzeer-testnet`؛ وقِّع كل معاملة به |
+| `networkId` | `String` | `consensus.network-id` — `janzeer` على الشبكة الرئيسية (تستخدم شبكة الاختبار الخاصة `janzeer-testnet`)؛ وقِّع كل معاملة به |
 | `genesisHash` | `String` | بصمة كتلة الحقبة 1 التكوينية: هوية السلسلة |
 | `chainSpecDigest` | `String` | ملخّص قواعد الإجماع + الكتلة التكوينية المُتبادَل في مصافحة P2P |
 | `version` / `apiVersion` / `protocolVersion` | `String` | إصدارات برمجية العقدة / واجهة REST-RPC / بروتوكول اتصال P2P |
 | `syncStatus` | `String` | `SYNCHRONIZED` أو `PROCESSING` أو `NOT_SYNCHRONIZED` |
-| `faucet` | `Boolean` | تُشغِّل هذه العقدة صنبور شبكة اختبار (`POST /api/v1/faucet`، §11.3) |
+| `faucet` | `Boolean` | تُشغِّل هذه العقدة صنبورًا (`POST /api/v1/faucet`، §11.3) — ممكن فقط على شبكة اختبار خاصة؛ دائمًا `false` على الشبكة الرئيسية |
 
-### 11.3 صنبور شبكة الاختبار — `/api/v1/faucet`
+### 11.3 الصنبور — `/api/v1/faucet` (شبكات الاختبار الخاصة فقط)
 
-موجود فقط على شبكة اختبار (ترفض العقدة تشغيل صنبور على معرِّف الشبكة الرئيسية؛ ويخبرك `GET /api/v1/info` → `faucet` بوجوده).
+موجود فقط على شبكة اختبار خاصة تشغّلها بنفسك — لا توجد شبكة اختبار عامة ولا صنبور عام (ترفض العقدة تشغيل صنبور على معرِّف الشبكة الرئيسية؛ ويخبرك `GET /api/v1/info` → `faucet` بوجوده).
 
 | المنهج | المسار | يُعيد |
 |---|---|---|

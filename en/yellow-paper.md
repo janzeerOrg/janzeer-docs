@@ -48,7 +48,7 @@ Rounding mode is `HALF_UP` at 8 decimal places before multiplication. This funct
 
 ### 1.4 Network identity (cross-chain replay protection)
 
-A **network-id** string (`consensus.network-id`, default `janzeer`; distinct per chain — mainnet / testnet / devnet) is bound into **both** the signed transaction preimage (§3.1) **and** the P2P handshake domain (§6.8). A transaction signed for one network therefore cannot be replayed on another: the network-id bytes are the first bytes of every transaction preimage. Every committed parity preimage now begins with `6a616e7a656572` (the UTF-8 bytes of `janzeer`).
+A **network-id** string (`consensus.network-id`, default `janzeer`; distinct per chain — the mainnet, or a private test network) is bound into **both** the signed transaction preimage (§3.1) **and** the P2P handshake domain (§6.8). A transaction signed for one network therefore cannot be replayed on another: the network-id bytes are the first bytes of every transaction preimage. Every committed parity preimage now begins with `6a616e7a656572` (the UTF-8 bytes of `janzeer`).
 
 ---
 
@@ -543,7 +543,7 @@ Anchors and the ceremony are configuration-driven:
 - `janzeer.genesis.anchors` — anchor validator wallets (committed dev defaults).
 - `janzeer.genesis.signer-secret` — the ceremony signing key.
 
-**Caveat (dev/testnet):** committed anchor secrets and defaults are for development/testnet and MUST be rotated for production. The `janzeer.dev-fund` faucet (`0xaddr:amount`) is OFF by default and MUST remain off in production. Finality requires a live quorum of the active set — a **single node cannot finalize**.
+**Caveat (development):** committed anchor secrets and defaults are for development/testnet and MUST be rotated for production. The `janzeer.dev-fund` faucet (`0xaddr:amount`) is OFF by default and MUST remain off in production. Finality requires a live quorum of the active set — a **single node cannot finalize**.
 
 ---
 

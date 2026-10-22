@@ -28,18 +28,18 @@ curl http://localhost:7019/actuator/health
 
 ### 1.2 الشبكات
 
-هناك شبكتان، وكل حزمة تنتمي إلى واحدة منهما فقط:
+هناك شبكة عامة واحدة هي الشبكة الرئيسية. وتنتمي كل حزمة إلى معرِّف شبكة واحد فقط:
 
 | الشبكة | `networkId` | الاستخدام |
 |---|---|---|
-| شبكة الاختبار | `janzeer-testnet` | ابنِ واختبر هنا — العملات بلا قيمة ويوزّعها صنبور |
-| الشبكة الرئيسية | `janzeer` | قيمة حقيقية |
+| الشبكة الرئيسية | `janzeer` | السلسلة الحيّة — الشبكة العامة الوحيدة |
+| شبكة اختبار خاصة | `janzeer-testnet` | شبكة تشغّلها بنفسك (شبكة المطوّرين المحلية في عدة التوافق الخاصة بالـ SDK، أو عقدك الخاصة)؛ عملاتها بلا قيمة. لا توجد شبكة اختبار عامة. |
 
 يدخل `networkId` في البيانات الموقَّعة لكل معاملة (§3) وفي مصافحة P2P، فالمعاملة الموقَّعة لشبكة غير صالحة في الأخرى. اقرأه من `GET /api/v1/info` بدل تثبيته في الشيفرة، كما تفعل المحافظ الرسمية.
 
-### 1.3 عملات الاختبار (صنبور شبكة الاختبار)
+### 1.3 عملات الاختبار
 
-في شبكة الاختبار، يرسل `POST /api/v1/faucet` مع `{"address": "0x…"}` (أو صفحة **الصنبور** في مستكشف شبكة الاختبار) مقدارًا صغيرًا من عملات الاختبار إلى العنوان، مع حدّ للمعدّل لكل عنوان ولكل IP. ولا يوجد صنبور في الشبكة الرئيسية.
+لا يوجد صنبور عام. للتطوير على سلسلة بعملات مجانية شغّل شبكة خاصة: يشغّل `e2e/node-up.sh` في عدة التوافق الخاصة بالـ SDK شبكة محلية من أربع عقد تشغّل عقدتها الأولى صنبورًا (`POST /api/v1/faucet` مع `{"address": "0x…"}`، بحدّ للمعدّل لكل عنوان ولكل IP) وتموّل محفظة اختبار. ترفض العقدة الصنبور على معرِّف الشبكة الرئيسية. وعلى الشبكة الرئيسية تأتي العملات من تحويل، أو من دفعة لعبة jPong الشهرية، أو من مكافآت الكتل بوصفك مدققًا.
 
 ### 1.4 إعداد التكوين (genesis) وتثبيت مواصفات السلسلة
 
@@ -51,7 +51,7 @@ curl http://localhost:7019/actuator/health
 | `janzeer.genesis.signer-secret` | مفتاح المراسم الذي يوقّع فقط كتلتي بدء التشغيل (وليس مرتكزًا) |
 | `janzeer.genesis.founder` | عنوان عهدة المؤسِّس الاختياري (مُقتطع من الخزينة) |
 | `janzeer.genesis.distribution` | عنوان عهدة مجمّع التوزيع/المنظومة الاختياري |
-| `janzeer.dev-fund` | صنبور تطوير/اختبار اختياري بالصيغة `0xaddr:amount`، يُسحب من الخزينة |
+| `janzeer.dev-fund` | تمويل تطوير مسبق اختياري لشبكة خاصة بالصيغة `0xaddr:amount`، يُسحب من الخزينة (مرفوض على الشبكة الرئيسية) |
 | `consensus.network-id` | سلسلة معرّف الشبكة (الافتراضي `janzeer`)، المربوطة داخل النص الأصلي الموقّع ومصافحة P2P |
 
 مجموعة معاملات التوافق الحرجة (كل ما تحت `consensus.*`) هي مجموعة القواعد المعيارية المثبَّتة عند التكوين (genesis). تحسب كل عقدة **بصمة مواصفات السلسلة** (double-SHA256 مزدوجة فوق تلك المعاملات) وتتبادلها في مصافحة P2P؛ ويُرفض أي نظير تختلف بصمته قبل التحدّي (challenge). والعقدة التي تعدّل أي معامل توافق تفرِّع نفسها عن الشبكة بدلًا من التباعد الصامت — فيمكن للمتكاملين الاعتماد على مجموعة قواعد متّسقة عبر النظراء المُوثَّقين.
@@ -180,7 +180,7 @@ curl http://localhost:7019/api/v1/wallets/0x06e1c0fa9955a700876f8cb0acc7f13fba9f
 
 | الأسلوب | المسار | يُعيد |
 |---|---|---|
-| GET | `/validators` (+ pagination, by registration order) | جميع المُصادِقين، مرتّبين بحسب ترتيب التسجيل |
+| GET | `/validators` (+ pagination, by registration order) | جميع المُصادِقين، مرتّبين بحسب ترتيب التسجيل؛ يحمل كل صف `status` (`ACTIVE` في مجموعة هذه الحقبة · `PENDING` مسجّل بعد بداية هذه الحقبة ويُعيَّن عند الحدود التالية · `STANDBY` مسجّل قبلها وغير معيّن في هذه الحقبة · `EXITED` · `BANNED`)، و`registeredAt`، و`lastBlockHeight`/`lastBlockTime` (أحدث كتلة أنتجها، أو null)، و`joinsAtHeight` (لحالتي PENDING/STANDBY: ارتفاع نشأة الحقبة التالية) — العقدة 0.1.3 |
 | GET | `/validators/active` (+ pagination) | المجموعة النشطة الحالية |
 | GET | `/validators/view` (+ pagination) | سجلّات عرض المُصادِقين |
 
@@ -213,9 +213,11 @@ curl http://localhost:7019/api/v1/explorer/info
 |---|---|---|
 | GET | `/info` | `{ nodeKey, host, port, networkId, genesisHash, chainSpecDigest, version, apiVersion, protocolVersion, syncStatus, faucet }` — اقرأ `networkId` ووقِّع كل معاملة به |
 | GET | `/info/version` | إصدار العقدة |
+| GET | `/info/update` | إصدار العقدة مقابل أحدث إصدار منشور (فحص يومي للبيان، إشعار فقط؛ العقدة 0.1.3) |
+| GET | `/info/sync` | تقدّم التزامن: `syncStatus` و`tipHeight` و`stagedBlocks` (كتل منزّلة ومتحقق منها لم تُثبَّت بعد) و`targetHeight` و`peers` — العقدة الجديدة تجهّز حقبة كاملة قبل أول تثبيت (العقدة 0.1.2) |
 | GET | `/info/uptime` | مدة تشغيل العقدة |
 | GET | `/info/genesis` | ملف `genesis.json` العام للسلسلة (ما تُقلِع منه العقدة المُنزَّلة) |
-| GET / POST | `/faucet` | شبكة الاختبار فقط: الحالة / `{address}` → دفعة 10 JNZ (`429` + `Retry-After` داخل نافذة التهدئة؛ `404` على الشبكة الرئيسية) |
+| GET / POST | `/faucet` | شبكات الاختبار الخاصة فقط (عقدة شُغّلت بمفتاح صنبور على معرِّف شبكة اختبار): الحالة / `{address}` → دفعة 10 JNZ (`429` + `Retry-After` داخل نافذة التهدئة). `404` على الشبكة الرئيسية — لا يوجد صنبور عام. |
 
 ### 2.11 المُشغِّل (Actuator) ووثائق الواجهة البرمجية (غير مغلّفة)
 
@@ -474,7 +476,7 @@ op(1) ‖ LP(tokenId) ‖ LP(symbol) ‖ LP(name) ‖ int32(decimals) ‖ LP(cap
 
 ## 5. ابنِ على Janzeer — مجموعات الأدوات (SDK) الرسمية والتوافق
 
-لست مضطرًا إلى إعادة تنفيذ مخطّط التشفير في §3: ثلاث مجموعات أدوات رسمية تقوم بذلك، وهي مُثبتة بايتًا ببايت مقابل العقدة، وتغلّف واجهتَي REST وJSON-RPC في §2 بعملاء مُنمَّطين. جميعها بترخيص Apache-2.0، وغير حافظة للمفاتيح (لا تغادر المفاتيح عمليتك أبدًا)، ومختبَرة مقابل العقدة 0.1.0 / الواجهة 1.1.0.
+لست مضطرًا إلى إعادة تنفيذ مخطّط التشفير في §3: خمس مجموعات أدوات رسمية تقوم بذلك، وهي مُثبتة بايتًا ببايت مقابل العقدة، وتغلّف واجهتَي REST وJSON-RPC في §2 بعملاء مُنمَّطين. جميعها بترخيص Apache-2.0، وغير حافظة للمفاتيح (لا تغادر المفاتيح عمليتك أبدًا)، ومختبَرة مقابل العقدة 0.1.0 / الواجهة 1.1.0.
 
 ### 5.1 مجموعات الأدوات
 
@@ -483,6 +485,8 @@ op(1) ‖ LP(tokenId) ‖ LP(symbol) ‖ LP(name) ‖ int32(decimals) ‖ LP(cap
 | TypeScript / JavaScript | `@janzeer/sdk` | `npm install @janzeer/sdk` | Node 20+، المتصفّحات (JavaScript خالص، يعمل على صفحات http عادية)، Deno/Bun |
 | Dart / Flutter | `janzeer_sdk` | `dart pub add janzeer_sdk` | Dart VM، وFlutter للجوّال وسطح المكتب والويب |
 | Kotlin / JVM / Android | `org.janzeer:janzeer-sdk-client` (+ `janzeer-sdk-core`) | اعتمادية Gradle/Maven | JVM 11+، Android API 26+، وJava العادية |
+| Python | `janzeer-sdk` (الاستيراد: `janzeer`) | `pip install "janzeer-sdk[ws]"` | Python 3.10–3.13 على لينكس وماك وويندوز؛ عملاء متزامنون وعملاء `asyncio` |
+| Go | `github.com/janzeerorg/janzeer-sdk-go` | `go get github.com/janzeerorg/janzeer-sdk-go` | Go 1.26 فما فوق، بلا cgo (يُبنى لكل المنصّات) |
 
 لكل مجموعة أدوات الشكل نفسه: `Mnemonic` / `Account` (المفاتيح والعناوين والتوقيع)، و`TxBuilder` (التحويل، وتسجيل المُصادِق وخروجه، وعمليات الرموز JZT-1 الخمس) ← `UnsignedTx` ← `SignedTx`، وعميل REST مُنمَّط (`JanzeerClient`)، وJSON-RPC عبر HTTP (`JanzeerRpc`) وعبر WebSocket مع اشتراكات `newBlocks` / `addressActivity` (`JanzeerRpcWs`)، ومساعدَا `waitForFinality` / `sendAndWait`، وتسلسل أخطاء مُنمَّط (`NonceMismatch`، و`TxRejected` مع `type` الصادر عن العقدة، و`RateLimited`، …)، وخزنة مشفّرة اختيارية لحفظ العبارة. المبالغ سلاسل عشرية، وتُحلَّل الاستجابات دون فقد — لا تمرّ أبدًا عبر عدد عشري عائم.
 
@@ -509,6 +513,21 @@ final fin = await waitForFinality(rpc, tx.hash);
 val tx = me.signTx(TxBuilder.transfer(from = me.address, to = to, amount = "1.25", nonce = client.nonce(me.address)))
 client.submit(tx)
 val fin = Helpers.waitForFinality(rpc, tx.hash)
+```
+
+```python
+# Python (النُّسخ غير المتزامنة: AsyncJanzeerClient وAsyncJanzeerRpc وJanzeerRpcWs وawait_finality)
+tx = me.sign_tx(TxBuilder.transfer(sender=me.address, to=to, amount="1.25", nonce=client.nonce(me.address)))
+client.submit(tx)
+final = wait_for_finality(rpc, tx.hash)
+```
+
+```go
+// Go (كل نداء يأخذ context؛ والأخطاء قيم مُنمَّطة تُفحص بـ errors.As)
+utx, _ := janzeer.NewTransfer(janzeer.Transfer{Common: janzeer.Common{From: me.Address(), Nonce: nonce}, To: to, Amount: "1.25"})
+tx, _ := me.SignTx(utx)
+_, err := c.Submit(ctx, tx)
+final, err := rpc.WaitForFinality(ctx, r, tx.Hash)
 ```
 
 يشحن مستودع كل مجموعة أدوات ملف README بهذا البدء السريع، وأدلّة (المحفظة والمفاتيح، وإرسال كل نوع معاملة، وقراءة بيانات السلسلة، وJSON-RPC والاشتراكات، والأخطاء وnonce، والخزنة، والترحيل)، ومرجعًا مولَّدًا للواجهة (TypeDoc / dartdoc / Dokka)، وأمثلة قابلة للتشغيل. ومحفظة مستكشف Janzeer، ومحفظة تطبيق Telegram المصغّر، ومحفظة Flutter مبنية عليها.

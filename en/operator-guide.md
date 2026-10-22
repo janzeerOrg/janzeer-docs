@@ -15,7 +15,7 @@ A critical reminder: **a single node cannot finalize anything.** Finality is BFT
 
 ## 2. Run a node (public download)
 
-Anyone can run a Janzeer node from the **public binary download** — no Java, no database server, no build. One archive per platform (Linux x86-64, Windows x86-64, macOS Apple silicon / Intel) plus a Docker image, all built from the same release: a native executable, its runtime libraries, the network's public `genesis.json`, a launcher, `README.txt`, `LICENSE.txt`, `VERSION` and `SHA256SUMS`. The bundle contains **no keys and no secrets**; your node creates its own identity on first start.
+Anyone can run a Janzeer node from the **public binary download** — no Java, no database server, no build. One archive per platform (Linux x86-64, Linux arm64 for the Raspberry Pi, Windows x86-64, macOS Apple silicon / Intel) plus a Docker image, all built from the same release: a native executable, its runtime libraries, the network's public `genesis.json`, a launcher, `README.txt`, `LICENSE.txt`, `VERSION` and `SHA256SUMS`. The bundle contains **no keys and no secrets**; your node creates its own identity on first start.
 
 There are exactly two ways to run it, with the **same binary**:
 
@@ -39,7 +39,7 @@ Get-FileHash janzeer-node-<version>-<network>-windows-x64.zip   # compare with t
 Expand-Archive janzeer-node-<version>-<network>-windows-x64.zip
 ```
 
-`<network>` is `testnet` (public test network, coins have no value, faucet available) or `mainnet`. A testnet bundle can never join the mainnet and vice versa: the network id is signed into every transaction and pinned in the peer handshake.
+`<network>` is `mainnet` (the only public network). The same kit can cut a `testnet` bundle (network id `janzeer-testnet`) for a private test network you run yourself — coins there have no value; there is no public testnet. A bundle of one network can never join another: the network id is signed into every transaction and pinned in the peer handshake.
 
 Requirements: a 64-bit OS, 1 GB of free RAM, 20 GB of disk, and an **NTP-synchronised clock** (a validator halts production if its clock is more than 250 ms off).
 
@@ -48,14 +48,14 @@ Requirements: a 64-bit OS, 1 GB of free RAM, 20 GB of disk, and an **NTP-synchro
 ```bash
 ./start.sh          # Linux / macOS
 start.cmd           # Windows
-docker compose up   # Docker (docker-compose.yml from the release)
+docker run -d --name janzeer -p 127.0.0.1:7019:7019 -p 9199:9199 -v janzeer-data:/opt/janzeer/data ghcr.io/janzeerorg/janzeer-node:latest   # Docker (x86-64 + arm64)
 ```
 
 The node creates `./data` (ledger + `data/config.json`, its identity), dials the seed peers baked into the launcher, syncs the chain and serves the explorer on `http://localhost:7019`. Check progress with:
 
 ```bash
 curl -s http://localhost:7019/api/v1/info
-# … "networkId":"janzeer-testnet","genesisHash":"…","version":"0.1.0","syncStatus":"SYNCHRONIZED" …
+# … "networkId":"janzeer","genesisHash":"…","version":"0.1.7","syncStatus":"SYNCHRONIZED" …
 ```
 
 `syncStatus` becomes `SYNCHRONIZED` when the node has caught up. That is a complete **watch-only** node.
@@ -68,7 +68,7 @@ Everything is tuned through environment variables read by the launcher (see `REA
 
 ### Step 4 — Become a validator
 
-1. **Open the P2P port** (default `9199/tcp`) to the internet so the other validators can reach your node.
+1. **Open the P2P port** (default `9199/tcp`) to the internet, so other nodes can dial yours. A validator behind a home router still works without it: every block, vote and certificate travels over the outbound connections your node keeps to its peers, and each node relays what it receives. The open port adds direct links to other validators and lets peers reach you when your own connections drop, so forward it when you can.
 2. **Read your node key**: `curl -s http://localhost:7019/api/v1/info` → `"nodeKey": "02…"` (also shown by the explorer your node serves).
 3. **From a Janzeer wallet** (web wallet at any explorer, or the mobile app): open the **Validators** tab, paste the node key and choose **Register**. The wallet signs and submits the registration transaction (`POST /api/v1/transactions/validators`) carrying the **2000 JNZ non-refundable deposit** plus the exact fee of 3 JNZ. Keys never leave the wallet; the node is non-custodial.
 4. Your node is admitted to the active set at the **next epoch boundary** and starts producing in its slots. Confirm with `/api/v1/validators/active`.
@@ -77,7 +77,11 @@ From here on, §4 applies: rewards go 100 % to the producing validator's wallet,
 
 ### Step 5 — Upgrade
 
-Stop the node, unpack the new bundle over the folder (keep `./data`), verify `SHA256SUMS`, start again. `VERSION` lists the wire protocol version; peers on another protocol version disconnect you with `protocol version mismatch` in the log — that line means "upgrade". Validators upgrade one at a time so the network keeps its quorum, except when a release notes say all nodes restart together (a protocol bump).
+**You are told, you decide.** The node checks once a day whether a newer release exists (`node.update.url`, the project's manifest at `downloads.janzeer.org/node/latest.json`; notification only, it never downloads or installs anything; `--node.update.enabled=false` opts out). A newer release appears as one warning line in the log, a notice at the top of the explorer and in `GET /api/v1/info/update`.
+
+Linux and macOS bundles ship `update.sh`: `./update.sh --check` reports, `./update.sh` downloads the new bundle, verifies the project's **minisign signature** on the release's `SHA256SUMS` and the archive's checksum against it, keeps `./data`, swaps the files, and restarts `janzeer-node.service` if that is how the node runs (`./update.sh --rollback` restores the previous version from `.previous/`). It needs `minisign` installed and refuses an unsigned or tampered release. The release public key (minisign, key id `9F798583B345AE01`) is `RWQBrkWzg4V5n5wUBa9GNPpa95Z7WFT2EY5QrabMv/DP+KG+gJsPIgdr`; it is printed in `update.sh`, in the bundle's `README.txt` and on <https://janzeer.org/validators> — compare them. To check a release by hand: `minisign -Vm SHA256SUMS -P RWQBrkWzg4V5n5wUBa9GNPpa95Z7WFT2EY5QrabMv/DP+KG+gJsPIgdr`. Windows: stop the node, unpack the new zip over the folder (keep `data\`), verify `SHA256SUMS`, start again. Arch Linux: `pacman -U` the new package.
+
+By hand on any platform: stop the node, unpack the new bundle over the folder (keep `./data`), verify `SHA256SUMS`, start again. `VERSION` lists the wire protocol version; peers on another protocol version disconnect you with `protocol version mismatch` in the log — that line means "upgrade". Validators upgrade one at a time so the network keeps its quorum, except when a release notes say all nodes restart together (a protocol bump).
 
 ### Troubleshooting
 
@@ -107,7 +111,7 @@ Configuration comes from built-in defaults, command-line `--key=value` overrides
 |-----------------------|-------------------------|---------|
 | `node.root-nodes`     | the network's seed peers (baked into the bundle launcher; `JANZEER_ROOT_NODES` overrides) | Seed/root peers dialed on startup for discovery. |
 | `node.peers-number`   | `3`                     | Target number of inbound peer connections. |
-| `node.protocol-version` | `3.2.0`               | P2P wire protocol version; a peer on another version is disconnected (`protocol version mismatch` in the log). |
+| `node.protocol-version` | `3.4.0`               | P2P wire protocol version; a peer on another version is disconnected (`protocol version mismatch` in the log). |
 | `node.ntp-servers`    | (configured list)       | NTP servers used for clock sync. |
 
 **Clock sync is required to produce.** The node halts block production if its clock is not synchronized (NTP offset must be within `ntp-offset-threshold = 250 ms` — tightened for the 15-second wall-clock slots) or if it is not fully synced. A node with a drifting clock will still serve the API and sync, but it will silently miss its production slots — keep NTP working.
@@ -118,7 +122,7 @@ These parameters are the **genesis-pinned rule-set**: everything under `consensu
 
 | Property                         | Default     | Meaning |
 |----------------------------------|-------------|---------|
-| `consensus.network-id`           | `janzeer`   | The network's identity, signed into every transaction and the handshake. The public testnet is `janzeer-testnet`. |
+| `consensus.network-id`           | `janzeer`   | The network's identity, signed into every transaction and the handshake. A private test network uses `janzeer-testnet`. |
 | `consensus.promoters-count`      | `21`        | Max size of the active set. |
 | `consensus.rotating-producer-seats` | `5`      | Elected seats that rotate through the standby bench. |
 | `consensus.producer-candidate-pool-size` | `100` | Standby bench size for fair rotation. |
@@ -170,7 +174,7 @@ The genesis anchors themselves (and the internal dev network) boot from properti
 - **Dev-fund faucet** — set `JANZEER_DEV_FUND=0xaddress:amount` (Spring property `janzeer.dev-fund`) to seed one funded account into genesis, so you can test sending coins without earning them first. **Off by default. Never set in production.**
 - **Genesis override** — genesis is config-driven: `janzeer.genesis.anchors`, `janzeer.genesis.signer-secret` (the ceremony key — anchors only; a downloaded node never has it), and the optional `janzeer.genesis.founder` / `janzeer.genesis.distribution` custody addresses let the node seed a new genesis **at runtime** without editing source. If `.founder` / `.distribution` are absent, those allocations fold back into the key-less treasury so nothing is minted beyond the fixed 100,000,000 cap.
 
-- **Testnet faucet** — `janzeer.faucet.secret` (private key of a funded testnet account, on ONE node) turns on `POST /api/v1/faucet` (`janzeer.faucet.amount`, default 10; `janzeer.faucet.cooldown-hours`, default 24, per address and per client IP). The node **refuses** a faucet whenever `consensus.network-id` is the mainnet id, whatever is configured. `GET /api/v1/info` → `faucet: true` tells wallets and the explorer to show the faucet page.
+- **Faucet (private test network only)** — `janzeer.faucet.secret` (private key of a funded account of that network, on ONE node) turns on `POST /api/v1/faucet` (`janzeer.faucet.amount`, default 10; `janzeer.faucet.cooldown-hours`, default 24, per address and per client IP). The node **refuses** a faucet whenever `consensus.network-id` is the mainnet id, whatever is configured. `GET /api/v1/info` → `faucet: true` tells wallets and the explorer to show the faucet page.
 
 The committed anchor secrets and genesis defaults are **dev/testnet values** — rotate them for any real deployment.
 
@@ -181,6 +185,8 @@ Registration is **permissionless** — there is no vote, no approval, and no loc
 1. **Register** from the wallet that will receive rewards. The registration transaction (`POST /api/v1/transactions/validators`, carrying your node's `validatorKey`) costs an exact **fee of 3** plus a **non-refundable deposit of 2000** (`amount-promoter-tx`, paid to the treasury bank). The `validatorKey` must be unique. The deposit plus one-seat-per-key is the Sybil guard — it is **not** returned when you exit.
 2. **Enter the active set by registration order.** Selection is by **registration order**, not votes or rating: eligible validators are ranked by their registration time (`createDate`, longest-registered first). While the number of registered validators is at or below the seat cap, all are active; overflow rotates fairly. The active set is the still-privileged **anchors** plus the longest-registered elected validators, filled up to `promoters-count = 21`. Of those, `rotating-producer-seats = 5` elected seats rotate round-robin (fair rotation, registration-ordered) through a standby bench of up to `producer-candidate-pool-size = 100`.
 3. **Exit gracefully** when you want to retire. Submit an exit-validator transaction (`POST /api/v1/transactions/exit-validators`, fee ≥ 0.01) with your `validatorKey`; you are removed from the active set and slot schedule at the next epoch boundary, so you stop being assigned slots immediately rather than degrading liveness until downtime ejection. The registration deposit stays gone.
+
+> **Validator grant (from 2026-10-10).** The first 10 outside operators who run a reachable, synced mainnet node for 7 days receive the registration deposit (plus the fee) from the ecosystem wallet. Rules and application: https://janzeer.org/validators#grant.
 
 ### Rewards
 
@@ -248,6 +254,7 @@ Also keep your **wallet recovery phrase (seed)** backed up offline — it contro
 
 ### Upgrades
 
+0. Linux/macOS: `./update.sh` does steps 1–4 for you, with signature verification (Step 5 above).
 1. Download the new bundle for your platform and verify `SHA256SUMS`.
 2. Stop the node.
 3. Unpack the new bundle over the folder (or pull the new Docker image); **keep the `data/` directory** (identity + ledger) in place — for Docker it is the mounted volume.
@@ -262,6 +269,7 @@ The node is **closed source and ships only as native binaries** — there is no 
 | Platform | Archive | Start |
 |---|---|---|
 | Linux x86-64 | `janzeer-node-<version>-<network>-linux-x64.tar.gz` | `./start.sh` (a `janzeer-node.service` systemd unit is included) |
+| Linux arm64 (Raspberry Pi 3/4/5, 64-bit OS) | `janzeer-node-<version>-<network>-linux-arm64.tar.gz` | `./start.sh` |
 | Windows x86-64 | `janzeer-node-<version>-<network>-windows-x64.zip` | `start.cmd` |
 | macOS (Apple silicon / Intel) | `janzeer-node-<version>-<network>-macos-{arm64,x64}.tar.gz` | `./start.sh` |
 
@@ -287,4 +295,4 @@ One bundle = one network: the network id and the genesis hash are pinned in the 
 
 ---
 
-**Document status** — version 1.1 (public node bundle, genesis.json, testnet + faucet); reflects node version 0.1.0 / wire protocol 3.2.0. Exact byte-level facts (crypto, transaction/block layouts, consensus math) live in the Yellow Paper.
+**Document status** — version 1.2 (public node bundle, genesis.json; mainnet is the only public network, no public faucet); reflects node version 0.1.7 / wire protocol 3.4.0. Exact byte-level facts (crypto, transaction/block layouts, consensus math) live in the Yellow Paper.

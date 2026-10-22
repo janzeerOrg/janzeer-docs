@@ -33,8 +33,8 @@ The following are implemented in the running node today. For exact constants and
 - **Persistence & delivery.** Embedded H2 file by default, PostgreSQL supported; Flyway-managed schema; multi-stage Docker image; CI (test → bootJar → docker build → Trivy scan); a one-command local network (`run/nodes.sh`, launch ≥ 4 nodes for fault tolerance).
 
 ### Honest caveats (current state)
-- Committed anchor secrets and dev defaults are for **dev/testnet** and must be rotated for any production deployment.
-- The dev/testnet faucet (`janzeer.dev-fund`) is **off by default** and must never be enabled in production.
+- Committed anchor secrets and dev defaults are for **development** and must be rotated for any production deployment.
+- The development faucet (`janzeer.dev-fund`) is **off by default** and must never be enabled in production.
 - Finality requires a **live quorum** of the active set; a single node cannot finalize.
 
 ## 2. Governance (today)

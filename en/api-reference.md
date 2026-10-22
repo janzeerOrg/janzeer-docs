@@ -437,16 +437,16 @@ curl http://localhost:7019/api/v1/explorer/info
 | `nodeKey` | `String` | this node's public key (its P2P identity / UID; the **validator key** you register) |
 | `host` | `String` | advertised external host |
 | `port` | `Int` | advertised external P2P port |
-| `networkId` | `String` | `consensus.network-id` — `janzeer` (mainnet) or `janzeer-testnet`; sign every transaction with it |
+| `networkId` | `String` | `consensus.network-id` — `janzeer` on the mainnet (a private test network uses `janzeer-testnet`); sign every transaction with it |
 | `genesisHash` | `String` | hash of the epoch-1 genesis block: the chain's identity |
 | `chainSpecDigest` | `String` | consensus rule-set + genesis digest exchanged in the P2P handshake |
 | `version` / `apiVersion` / `protocolVersion` | `String` | node software / REST-RPC API / P2P wire protocol versions |
 | `syncStatus` | `String` | `SYNCHRONIZED`, `PROCESSING` or `NOT_SYNCHRONIZED` |
-| `faucet` | `Boolean` | this node runs a testnet faucet (`POST /api/v1/faucet`, §11.3) |
+| `faucet` | `Boolean` | this node runs a faucet (`POST /api/v1/faucet`, §11.3) — only possible on a private test network; always `false` on the mainnet |
 
-### 11.3 Testnet faucet — `/api/v1/faucet`
+### 11.3 Faucet — `/api/v1/faucet` (private test networks only)
 
-Present only on a test network (a node refuses to run a faucet on the mainnet id; `GET /api/v1/info` → `faucet` says whether it is there).
+Present only on a private test network you run yourself — there is no public testnet and no public faucet (a node refuses to run a faucet on the mainnet id; `GET /api/v1/info` → `faucet` says whether it is there).
 
 | Method | Path | Returns |
 |---|---|---|

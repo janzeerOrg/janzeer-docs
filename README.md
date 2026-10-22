@@ -5,7 +5,7 @@
 The official documents of the **Janzeer** blockchain, in English and Arabic: a stake-free, permissionless Layer-1 with
 15-second blocks and finality in one block, a fixed supply of 100,000,000 JNZ, and non-custodial wallets.
 
-This edition describes node **0.1.0**.
+This edition describes node **0.1.7**.
 
 <div dir="rtl">
 
